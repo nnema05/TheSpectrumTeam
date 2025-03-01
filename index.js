@@ -80,123 +80,15 @@ app.use(
 
 // TODO - Include your API routes here
 app.get('/', (req, res) => {
-  res.redirect('/login'); // Redirect to the /login route
+  res.redirect('/discover'); // Redirect to the /login route
 });
-
-app.get('/login', (req, res) => {
-  res.render('pages/login');
-})
-
-app.get('/register', (req, res) => {
-  res.render('pages/register');
-})
-
-// Register
-app.post('/register', async (req, res) => {
-  try {
-    // Hash the password using bcrypt library
-    const hash = await bcrypt.hash(req.body.password, 10);
-
-    // Insert username and hashed password into the 'users' table
-    //await db.none('INSERT INTO users(username, password) VALUES($1, $2)', [req.body.username, hash]);
-    await db.none(
-      'INSERT INTO users(username, password) VALUES($1, $2)', 
-      [req.body.username, hash, req.body.preferred_platform]
-    );
-
-    // Redirect to GET /login route after successful registration
-    res.redirect('/login');
-  } catch (error) {
-    console.error('Registration error:', error.message || error);
-    // Redirect back to the registration page if there's an error
-    res.redirect('/register');
-  }
-});
-
-app.post('/login', async (req, res) => {
-  try {
-    // Find the user in the users table
-    const user = await db.oneOrNone('SELECT * FROM users WHERE username = $1', [req.body.username]);
-
-    // Check if the user exists
-    if (!user) {
-      // User not found, render login page with error message
-      const message = "Username not found. Please register.";
-      return res.render('pages/login', { message, error: true });
-    }
-
-    // Compare the entered password with the hashed password in the database
-    const match = await bcrypt.compare(req.body.password, user.password);
-
-    if (!match) {
-      // Password incorrect, render login page with error message
-      const message = "Incorrect username or password.";
-      return res.render('login', { message, error: true });
-    }
-
-    // If the password is correct, save user details in session
-    req.session.user = user;
-    req.session.save();
-
-    // Redirect to /discover route after successful login
-    res.redirect('/discover');
-  } catch (error) {
-    console.error('Login error:', error.message || error);
-    // Render the login page with a generic error message
-    const message = "An error occurred during login. Please try again.";
-    res.render('pages/login', { message, error: true });
-  }
-});
-
-
-
-// Authentication Middleware.
-const auth = (req, res, next) => {
-  if (!req.session.user) {
-    // Default to login page.
-    return res.redirect('/login');
-  }
-  next();
-};
-
-// Authentication Required
-app.use(auth);
-app.use('/discover', auth);
 
 // Discover page
 app.get('/discover', async (req, res) => {
   res.render('pages/discover');
 });
 
-// Logout route
-app.get('/logout', (req, res) => {
-  req.session.destroy(err => {
-    if (err) {
-      // If there's an error during logout, you can log it and respond accordingly
-      console.error('Session destruction error:', err);
-      return res.status(500).send('Could not log out.');
-    }
-    // Render the logout page with a success message
-    res.render('pages/logout', {
-      message: 'Logged out Successfully',
-      error: false
-    });
-  });
-});
 
-/*creating profile page route*/
-app.get('/profile', (req, res) => {
-  if (!req.session.user) {
-    return res.status(401).send('Not authenticated');
-  }
-  try {
-    res.render('pages/profile', { username: req.session.user.username });
-    //  res.should.be.html; // Expecting a HTML response
-  } catch (err) {
-    console.error('Profile error:', err);
-    res.status(500).send('Internal Server Error');
-  }
-});
 
 
 
